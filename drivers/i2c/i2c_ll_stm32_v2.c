@@ -503,6 +503,8 @@ static int stm32_i2c_msg_write(const struct device *dev, struct i2c_msg *msg,
 	data->current.is_err = 0U;
 	data->current.msg = msg;
 
+	k_sem_reset(&data->device_sync_sem);
+
 	msg_init(dev, msg, next_msg_flags, slave, LL_I2C_REQUEST_WRITE);
 
 	stm32_i2c_enable_transfer_interrupts(dev);
@@ -561,6 +563,8 @@ static int stm32_i2c_msg_read(const struct device *dev, struct i2c_msg *msg,
 	data->current.is_err = 0U;
 	data->current.is_nack = 0U;
 	data->current.msg = msg;
+
+	k_sem_reset(&data->device_sync_sem);
 
 	msg_init(dev, msg, next_msg_flags, slave, LL_I2C_REQUEST_READ);
 
