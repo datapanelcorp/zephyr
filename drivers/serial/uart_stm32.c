@@ -1262,7 +1262,30 @@ static void uart_stm32_isr(const struct device *dev)
 	}
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 
+#if defined(CONFIG_PM) && defined(IS_UART_WAKEUP_FROMSTOP_INSTANCE) \
+	&& defined(USART_CR3_WUFIE)
+	if (LL_USART_IsEnabledIT_WKUP(usart) &&
+		LL_USART_IsActiveFlag_WKUP(usart)) {
+
+		LL_USART_ClearFlag_WKUP(usart);
+#ifdef USART_ISR_REACK
+		while (LL_USART_IsActiveFlag_REACK(usart) == 0) {
+		}
+#endif
+	}
+#endif
+
 #ifdef CONFIG_UART_ASYNC_API
+#ifdef CONFIG_UART_INTERRUPT_DRIVEN
+	/* If both ASYNC and INTERRUPT modes are supported in this build,
+	 * check whether this instance is currently being used via the
+	 * interrupt-driven API. If it is, do not process interrupt flags
+	 * as the user callback invoked earlier is responsible for that.
+	 */
+	if (data->user_cb) {
+		return;
+	}
+#endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 	if (LL_USART_IsEnabledIT_IDLE(usart) &&
 			LL_USART_IsActiveFlag_IDLE(usart)) {
 
@@ -1302,18 +1325,6 @@ static void uart_stm32_isr(const struct device *dev)
 	uart_stm32_err_check(dev);
 #endif /* CONFIG_UART_ASYNC_API */
 
-#if defined(CONFIG_PM) && defined(IS_UART_WAKEUP_FROMSTOP_INSTANCE) \
-	&& defined(USART_CR3_WUFIE)
-	if (LL_USART_IsEnabledIT_WKUP(usart) &&
-		LL_USART_IsActiveFlag_WKUP(usart)) {
-
-		LL_USART_ClearFlag_WKUP(usart);
-#ifdef USART_ISR_REACK
-		while (LL_USART_IsActiveFlag_REACK(usart) == 0) {
-		}
-#endif
-	}
-#endif
 }
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN || CONFIG_UART_ASYNC_API || CONFIG_PM */
 
